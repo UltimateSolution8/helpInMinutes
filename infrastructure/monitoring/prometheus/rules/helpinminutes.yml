@@ -1,0 +1,279 @@
+# ============================================
+# HelpInMinutes Prometheus Alert Rules
+# ============================================
+
+groups:
+  # ============================================
+  # Service Health Alerts
+  # ============================================
+  - name: service-health
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"identity-service|task-service|matching-service|payment-service|realtime-service|admin-portal"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute"
+
+      - alert: ServiceHighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has error rate > 5% for 5 minutes"
+
+      - alert: ServiceHighErrorRateCritical
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m]) > 0.2
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Critical error rate on {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has error rate > 20% for 2 minutes"
+
+  # ============================================
+  # JVM Heap Alerts (Java Services)
+  # ============================================
+  - name: jvm-health
+    rules:
+      - alert: JVMHeapUsageHigh
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "JVM Heap usage high on {{ $labels.service }}"
+          description: "Heap usage is {{ $value | humanize1024 }} on {{ $labels.service }}"
+
+      - alert: JVMHeapUsageCritical
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "JVM Heap usage critical on {{ $labels.service }}"
+          description: "Heap usage is {{ $value | humanize1024 }} on {{ $labels.service }}"
+
+      - alert: JVMGCPAusedTooHigh
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) / rate(jvm_gc_pause_seconds_count[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High GC pause time on {{ $labels.service }}"
+          description: "Average GC pause time is {{ $value | humanizeDuration }} on {{ $labels.service }}"
+
+  # ============================================
+  # Database Alerts
+  # ============================================
+  - name: database-health
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL has been down for more than 1 minute"
+
+      - alert: PostgreSQLConnectionsHigh
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "PostgreSQL connections high"
+          description: "PostgreSQL is using {{ $value | humanize1024 }} connections"
+
+      - alert: PostgreSQLConnectionsCritical
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.95
+        for: 1m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL connections critical"
+          description: "PostgreSQL is running out of connections"
+
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "PostgreSQL replication lag"
+          description: "Replication lag is {{ $value | humanizeDuration }}"
+
+  # ============================================
+  # Redis Alerts
+  # ============================================
+  - name: redis-health
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ $value | humanize1024 }}"
+
+      - alert: RedisConnectedClientsHigh
+        expr: redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Redis connected clients high"
+          description: "Redis has {{ $value }} connected clients"
+
+  # ============================================
+  # RabbitMQ Alerts
+  # ============================================
+  - name: rabbitmq-health
+    rules:
+      - alert: RabbitMQDown
+        expr: rabbitmq_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ has been down for more than 1 minute"
+
+      - alert: RabbitMQQueueHigh
+        expr: rabbitmq_queue_messages > 10000
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "RabbitMQ queue backlog"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages"
+
+      - alert: RabbitMQConsumerLow
+        expr: rabbitmq_queue_consumers < 1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "RabbitMQ queue has no consumers"
+          description: "Queue {{ $labels.queue }} has no consumers"
+
+  # ============================================
+  # Business Metrics Alerts
+  # ============================================
+  - name: business-metrics
+    rules:
+      - alert: TaskCreationRateLow
+        expr: rate(task_created_total[5m]) < 1
+        for: 15m
+        labels:
+          severity: warning
+          team: product
+        annotations:
+          summary: "Task creation rate is low"
+          description: "Task creation rate is less than 1 per minute"
+
+      - alert: TaskMatchingRateLow
+        expr: rate(task_matched_total[5m]) < 1
+        for: 15m
+        labels:
+          severity: warning
+          team: product
+        annotations:
+          summary: "Task matching rate is low"
+          description: "Task matching rate is less than 1 per minute"
+
+      - alert: PaymentFailureRateHigh
+        expr: rate(payment_failed_total[5m]) / rate(payment_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: payments
+        annotations:
+          summary: "Payment failure rate high"
+          description: "Payment failure rate is {{ $value | humanizePercentage }}"
+
+  # ============================================
+  # Infrastructure Alerts
+  # ============================================
+  - name: infrastructure
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighCPUUsageCritical
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 5m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: DiskSpaceLow
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}%"
+
+      - alert: DiskSpaceCritical
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Disk space critical on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}%"

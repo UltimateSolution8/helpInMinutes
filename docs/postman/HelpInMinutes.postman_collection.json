@@ -1,0 +1,1421 @@
+{
+	"info": {
+		"_postman_id": "helpinminutes-api-collection",
+		"name": "HelpInMinutes API Collection",
+		"description": "Complete API collection for HelpInMinutes microservices",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "identityServiceUrl",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "taskServiceUrl",
+			"value": "http://localhost:8082",
+			"type": "string"
+		},
+		{
+			"key": "matchingServiceUrl",
+			"value": "http://localhost:8083",
+			"type": "string"
+		},
+		{
+			"key": "paymentServiceUrl",
+			"value": "http://localhost:8084",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "buyerId",
+			"value": "c0000000-0000-4000-8000-000000000001",
+			"type": "string"
+		},
+		{
+			"key": "helperId",
+			"value": "d0000000-0000-4000-8000-000000000001",
+			"type": "string"
+		},
+		{
+			"key": "adminId",
+			"value": "a0000000-0000-4000-8000-000000000001",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Checks",
+			"item": [
+				{
+					"name": "Identity Service Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/health",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Task Service Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/health",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Matching Service Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/health",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Service Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/health",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "health"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Buyer Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+									"    pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john.buyer@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/auth/login",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Helper Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"priya.helper@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/auth/login",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@helpinminutes.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/auth/login",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buyer Signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"new.buyer@example.com\",\n    \"password\": \"password123\",\n    \"name\": \"New Buyer\",\n    \"phone\": \"+919999999999\"\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/auth/signup",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "auth", "signup"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Helper Registration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"new.helper@example.com\",\n    \"password\": \"password123\",\n    \"name\": \"New Helper\",\n    \"phone\": \"+919888888888\",\n    \"skills\": [\"basic-house-cleaning\", \"deep-cleaning\"],\n    \"hourlyRate\": 200,\n    \"bio\": \"Experienced cleaner\"\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/auth/helpers/register",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "auth", "helpers", "register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/auth/refresh",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "auth", "refresh"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/auth/logout",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "auth", "logout"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Get Current User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/users/me",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "users", "me"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/users/{{buyerId}}",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "users", "{{buyerId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Account",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/users/me",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "users", "me"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Helper Management",
+			"item": [
+				{
+					"name": "Get Helper Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/helpers/{{helperId}}",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "{{helperId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current Helper Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/helpers/me",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "me"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Helper Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bio\": \"Updated bio\",\n    \"hourlyRate\": 300\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/helpers/me",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "me"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get KYC Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/helpers/{{helperId}}/kyc/status",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "{{helperId}}", "kyc", "status"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Online Status",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"isOnline\": true,\n    \"latitude\": 28.6139,\n    \"longitude\": 77.2090\n}"
+						},
+						"url": {
+							"raw": "{{identityServiceUrl}}/api/v1/helpers/{{helperId}}/online",
+							"host": ["{{identityServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "{{helperId}}", "online"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tasks",
+			"item": [
+				{
+					"name": "Create Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Deep cleaning of apartment\",\n    \"description\": \"Need thorough cleaning of 2BHK apartment\",\n    \"subSkill\": \"deep-cleaning\",\n    \"latitude\": 28.6139,\n    \"longitude\": 77.2090,\n    \"address\": \"123 Main Street, Connaught Place\",\n    \"city\": \"New Delhi\",\n    \"scheduledAt\": \"2024-12-01T10:00:00Z\",\n    \"price\": 1500,\n    \"estimatedDurationMinutes\": 180\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/tasks",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "tasks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List My Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/tasks?page=0&size=10",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "tasks"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Task Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/tasks/f0000000-0000-4000-8000-000000000001",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "tasks", "f0000000-0000-4000-8000-000000000001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Updated description\",\n    \"price\": 1800\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/tasks/f0000000-0000-4000-8000-000000000001",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "tasks", "f0000000-0000-4000-8000-000000000001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Task",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"No longer needed\"\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/tasks/f0000000-0000-4000-8000-000000000001",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "tasks", "f0000000-0000-4000-8000-000000000001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Task History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/tasks/f0000000-0000-4000-8000-000000000001/history",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "tasks", "f0000000-0000-4000-8000-000000000001", "history"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Raise Dispute",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"Service not as described\",\n    \"requestedAmount\": 500\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/tasks/f0000000-0000-4000-8000-000000000001/dispute",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "tasks", "f0000000-0000-4000-8000-000000000001", "dispute"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Helper Tasks",
+			"item": [
+				{
+					"name": "List My Assigned Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/helpers/tasks?page=0&size=10",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "tasks"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Accept Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/helpers/tasks/f0000000-0000-4000-8000-000000000004/accept",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "tasks", "f0000000-0000-4000-8000-000000000004", "accept"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Arrived",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/helpers/tasks/f0000000-0000-4000-8000-000000000001/arrived",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "tasks", "f0000000-0000-4000-8000-000000000001", "arrived"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/helpers/tasks/f0000000-0000-4000-8000-000000000001/start",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "tasks", "f0000000-0000-4000-8000-000000000001", "start"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"completionCode\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/helpers/tasks/f0000000-0000-4000-8000-000000000001/complete",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "helpers", "tasks", "f0000000-0000-4000-8000-000000000001", "complete"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin Task Management",
+			"item": [
+				{
+					"name": "List All Tasks (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/admin/tasks?page=0&size=10&status=MATCHING",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "admin", "tasks"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "status",
+									"value": "MATCHING"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reassign Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"newHelperId\": \"d0000000-0000-4000-8000-000000000002\"\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/admin/tasks/f0000000-0000-4000-8000-000000000001/reassign",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "admin", "tasks", "f0000000-0000-4000-8000-000000000001", "reassign"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Intervene",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"HOLD_PAYMENT\",\n    \"reason\": \"Pending dispute resolution\"\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/admin/tasks/f0000000-0000-4000-8000-000000000001/intervene",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "admin", "tasks", "f0000000-0000-4000-8000-000000000001", "intervene"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Disputes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/admin/tasks/disputes?page=0&size=10",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "admin", "tasks", "disputes"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Resolve Dispute",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"decision\": \"REFUND_BUYER\",\n    \"refundAmount\": 500,\n    \"notes\": \"Partial refund issued\"\n}"
+						},
+						"url": {
+							"raw": "{{taskServiceUrl}}/api/v1/admin/tasks/disputes/dispute-id/resolve",
+							"host": ["{{taskServiceUrl}}"],
+							"path": ["api", "v1", "admin", "tasks", "disputes", "dispute-id", "resolve"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Matching",
+			"item": [
+				{
+					"name": "Trigger Matching",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"searchRadiusKm\": 5\n}"
+						},
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/match",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "match"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Claim Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": \"f0000000-0000-4000-8000-000000000005\"\n}"
+						},
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/claim",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "claim"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Decline Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": \"f0000000-0000-4000-8000-000000000005\",\n    \"reason\": \"Too far from my location\"\n}"
+						},
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/decline",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "decline"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retry Matching",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/match/f0000000-0000-4000-8000-000000000005/retry",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "match", "f0000000-0000-4000-8000-000000000005", "retry"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Nearby Helpers (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/location/helpers/nearby?latitude=28.6139&longitude=77.2090&radiusKm=5",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "location", "helpers", "nearby"],
+							"query": [
+								{
+									"key": "latitude",
+									"value": "28.6139"
+								},
+								{
+									"key": "longitude",
+									"value": "77.2090"
+								},
+								{
+									"key": "radiusKm",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Online Helper Count",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/location/stats/online-count",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "location", "stats", "online-count"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Create Payment Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": \"f0000000-0000-4000-8000-000000000001\"\n}"
+						},
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payments/order",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payments", "order"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Capture Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderId\": \"order_ABCD1234EFGH\",\n    \"paymentId\": \"pay_ABCD1234EFGH5678\"\n}"
+						},
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payments/capture",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payments", "capture"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Cash Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": \"f0000000-0000-4000-8000-000000000001\"\n}"
+						},
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payments/cash",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payments", "cash"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Cash Payment OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"paymentId\": \"payment-uuid\",\n    \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payments/cash/verify",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payments", "cash", "verify"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payments/a0000000-0000-4000-8000-000000000002",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payments", "a0000000-0000-4000-8000-000000000002"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Process Refund",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"Service not as described\"\n}"
+						},
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payments/a0000000-0000-4000-8000-000000000002/refund",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payments", "a0000000-0000-4000-8000-000000000002", "refund"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Financial Breakdown",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payments/calculate-breakdown?amount=1500",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payments", "calculate-breakdown"],
+							"query": [
+								{
+									"key": "amount",
+									"value": "1500"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payouts",
+			"item": [
+				{
+					"name": "Create Payout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"helperId\": \"d0000000-0000-4000-8000-000000000001\",\n    \"amount\": 1275,\n    \"taskId\": \"f0000000-0000-4000-8000-000000000001\"\n}"
+						},
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payouts",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payouts"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payout Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payouts/payout-id",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payouts", "payout-id"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retry Failed Payout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/payouts/payout-id/retry",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "payouts", "payout-id", "retry"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Ledger",
+			"item": [
+				{
+					"name": "Get Task Ledger Entries",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/ledger/task/f0000000-0000-4000-8000-000000000001",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "ledger", "task", "f0000000-0000-4000-8000-000000000001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Ledger Entries",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/ledger/user/d0000000-0000-4000-8000-000000000001",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "ledger", "user", "d0000000-0000-4000-8000-000000000001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Financial Summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{paymentServiceUrl}}/api/v1/ledger/summary",
+							"host": ["{{paymentServiceUrl}}"],
+							"path": ["api", "v1", "ledger", "summary"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Helper Location",
+			"item": [
+				{
+					"name": "Send Heartbeat",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"latitude\": 28.6139,\n    \"longitude\": 77.2090,\n    \"accuracy\": 10\n}"
+						},
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/location/heartbeat",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "location", "heartbeat"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Go Online",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"latitude\": 28.6139,\n    \"longitude\": 77.2090\n}"
+						},
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/location/online",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "location", "online"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Go Offline",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{matchingServiceUrl}}/api/v1/matching/location/offline",
+							"host": ["{{matchingServiceUrl}}"],
+							"path": ["api", "v1", "matching", "location", "offline"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

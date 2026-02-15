@@ -1,0 +1,28 @@
+# ============================================
+# Kubernetes Namespaces
+# ============================================
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helpinminutes
+  labels:
+    app.kubernetes.io/name: helpinminutes
+    app.kubernetes.io/managed-by: kubectl
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/managed-by: kubectl
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/managed-by: kubectl

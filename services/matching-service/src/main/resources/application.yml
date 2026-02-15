@@ -1,0 +1,123 @@
+server:
+  port: ${MATCHING_SERVICE_PORT:8083}
+
+spring:
+  application:
+    name: matching-service
+  
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/helpinminutes}
+    username: ${SPRING_DATASOURCE_USERNAME:helpinminutes}
+    password: ${SPRING_DATASOURCE_PASSWORD:helpinminutes_secret}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:redis}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:redis123}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:helpinminutes}
+    password: ${SPRING_RABBITMQ_PASSWORD:helpinminutes123}
+    connection-timeout: 5000
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000
+        max-attempts: 3
+
+# H3 Configuration
+h3:
+  resolution: 9  # H3 resolution level (0-15), 9 ~ 170m hexagons
+
+# Service Clients
+services:
+  task-service:
+    url: ${TASK_SERVICE_URL:http://task-service:8082}
+  identity-service:
+    url: ${IDENTITY_SERVICE_URL:http://identity-service:8081}
+
+# Logging
+logging:
+  level:
+    com.helpinminutes.matching: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management / Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: false
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# Application-specific
+app:
+  matching:
+    max-helpers-per-task: 5
+    search-radius-km: 10
+    matching-timeout-minutes: 5
+  rabbitmq:
+    exchange:
+      tasks: tasks.exchange
+      events: events.exchange
+
+# Matching Algorithm Configuration
+matching:
+  timeout:
+    ms: 300  # Target p95 latency
+  max-helpers-to-notify: 5
+  dispatch-timeout-seconds: 15
+  weights:
+    proximity: 0.35
+    rating: 0.25
+    responseTime: 0.20
+    skillMatch: 0.20
+  scoring:
+    maxDistanceKm: 10.0
+    maxResponseTimeSeconds: 300.0
+    minRatingThreshold: 3.0
+  retry:
+    max-attempts: 3
+    expanded-radius-multiplier: 2.0

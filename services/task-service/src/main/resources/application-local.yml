@@ -1,0 +1,80 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: task-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/helpinminutes
+    username: helpinminutes
+    password: helpinminutes123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  liquibase:
+    enabled: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis123
+      timeout: 2000ms
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: helpinminutes
+    password: helpinminutes123
+    connection-timeout: 5000
+
+# Logging
+logging:
+  level:
+    com.helpinminutes.task: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management / Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: false
+    rabbit:
+      enabled: false
+
+# Application-specific
+app:
+  task:
+    max-active-tasks-per-user: 5
+    auto-cancel-minutes: 30
+    completion-confirmation-hours: 24
+
+# JWT Configuration
+jwt:
+  secret: helpinminutes-jwt-secret-key-for-development-only-32bytes
+  expiration: 86400000

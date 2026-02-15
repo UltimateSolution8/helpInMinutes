@@ -1,0 +1,241 @@
+services:
+  # PostgreSQL with PostGIS
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: helpinminutes-postgres
+    environment:
+      POSTGRES_USER: helpinminutes
+      POSTGRES_PASSWORD: helpinminutes_secret
+      POSTGRES_DB: helpinminutes
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpinminutes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - helpinminutes-network
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: helpinminutes-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - helpinminutes-network
+
+  # RabbitMQ for messaging
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: helpinminutes-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: helpinminutes
+      RABBITMQ_DEFAULT_PASS: helpinminutes123
+      RABBITMQ_VHOST: /
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "rabbitmq-diagnostics check_port_connectivity > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    networks:
+      - helpinminutes-network
+    user: "1000:1000"
+
+  # Identity Service
+  identity-service:
+    build:
+      context: .
+      dockerfile: services/identity-service/Dockerfile
+    container_name: helpinminutes-identity-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/helpinminutes
+      SPRING_DATASOURCE_USERNAME: helpinminutes
+      SPRING_DATASOURCE_PASSWORD: helpinminutes_secret
+      SPRING_REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      JWT_SECRET: ${JWT_SECRET:-super-long-jwt-secret-key-for-testing-32bytes}
+      JWT_EXPIRATION_MS: 86400000
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - helpinminutes-network
+    restart: unless-stopped
+
+  # Task Service
+  task-service:
+    build:
+      context: .
+      dockerfile: services/task-service/Dockerfile
+    container_name: helpinminutes-task-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/helpinminutes
+      SPRING_DATASOURCE_USERNAME: helpinminutes
+      SPRING_DATASOURCE_PASSWORD: helpinminutes_secret
+      SPRING_REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      identity-service:
+        condition: service_started
+    networks:
+      - helpinminutes-network
+    restart: unless-stopped
+
+  # Matching Service
+  matching-service:
+    build:
+      context: .
+      dockerfile: services/matching-service/Dockerfile
+    container_name: helpinminutes-matching-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/helpinminutes
+      SPRING_DATASOURCE_USERNAME: helpinminutes
+      SPRING_DATASOURCE_PASSWORD: helpinminutes_secret
+      SPRING_REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      TASK_SERVICE_URL: http://task-service:8082
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      task-service:
+        condition: service_started
+    networks:
+      - helpinminutes-network
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    container_name: helpinminutes-payment-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/helpinminutes
+      SPRING_DATASOURCE_USERNAME: helpinminutes
+      SPRING_DATASOURCE_PASSWORD: helpinminutes_secret
+      SPRING_REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      TASK_SERVICE_URL: http://task-service:8082
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      task-service:
+        condition: service_started
+    networks:
+      - helpinminutes-network
+    restart: unless-stopped
+
+  # Realtime Service
+  realtime-service:
+    build:
+      context: .
+      dockerfile: services/realtime-service/Dockerfile
+    container_name: helpinminutes-realtime-service
+    environment:
+      NODE_ENV: docker
+      PORT: 3001
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://helpinminutes:helpinminutes123@rabbitmq:5672
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      TASK_SERVICE_URL: http://task-service:8082
+      MATCHING_SERVICE_URL: http://matching-service:8083
+      JWT_SECRET: ${JWT_SECRET:-super-long-jwt-secret-key-for-testing-32bytes}
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      task-service:
+        condition: service_started
+      matching-service:
+        condition: service_started
+    networks:
+      - helpinminutes-network
+    restart: unless-stopped
+
+  # Admin Portal
+  admin-portal:
+    build: ./admin-portal
+    container_name: helpinminutes-admin-portal
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8081
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - identity-service
+      - realtime-service
+    networks:
+      - helpinminutes-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  helpinminutes-network:
+    driver: bridge

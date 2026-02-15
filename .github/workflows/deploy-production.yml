@@ -1,0 +1,280 @@
+# ============================================
+# HelpInMinutes Production Deployment Pipeline
+# ============================================
+
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ github.repository }}
+  PRODUCTION_ENV_PATH: infrastructure/docker/production.env
+
+jobs:
+  # ============================================
+  # Verify Release Tag
+  # ============================================
+  verify-release:
+    name: Verify Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version format: $VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+
+  # ============================================
+  # Approval Gate
+  # ============================================
+  approval:
+    name: Approval Required
+    runs-on: ubuntu-latest
+    needs: verify-release
+    environment:
+      name: production
+      url: https://helpinminutes.com
+    steps:
+      - name: Approval
+        run: echo "Approved for production deployment"
+
+  # ============================================
+  # Deploy to Production
+  # ============================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [verify-release, approval]
+    environment:
+      name: production
+      url: https://helpinminutes.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Download and source production environment
+        run: |
+          echo "${{ secrets.PRODUCTION_ENV_FILE }}" > ${{ env.PRODUCTION_ENV_PATH }}
+
+      - name: Extract metadata for all services
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/helpinminutes/identity-service
+            ${{ env.REGISTRY }}/helpinminutes/task-service
+            ${{ env.REGISTRY }}/helpinminutes/matching-service
+            ${{ env.REGISTRY }}/helpinminutes/payment-service
+            ${{ env.REGISTRY }}/helpinminutes/realtime-service
+            ${{ env.REGISTRY }}/helpinminutes/admin-portal
+          tags: |
+            type=semver,pattern=v{{version}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Pull latest images
+        run: |
+          VERSION=${{ needs.verify-release.outputs.version }}
+          for service in identity-service task-service matching-service payment-service realtime-service admin-portal; do
+            docker pull ${{ env.REGISTRY }}/helpinminutes/$service:v$VERSION || true
+          done
+
+      - name: Build and push all services with version tag
+        run: |
+          VERSION=${{ needs.verify-release.outputs.version }}
+          for service in identity-service task-service matching-service payment-service realtime-service admin-portal; do
+            docker tag ${{ env.REGISTRY }}/helpinminutes/$service:staging ${{ env.REGISTRY }}/helpinminutes/$service:v$VERSION
+            docker push ${{ env.REGISTRY }}/helpinminutes/$service:v$VERSION
+            docker tag ${{ env.REGISTRY }}/helpinminutes/$service:staging ${{ env.REGISTRY }}/helpinminutes/$service:latest
+            docker push ${{ env.REGISTRY }}/helpinminutes/$service:latest
+          done
+
+      - name: Setup SSH for production server
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: Create backup before deployment
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            cd /opt/helpinminutes
+            ./infrastructure/backup/backup.sh --type=full --destination=s3
+            echo "Backup completed"
+          EOF
+
+      - name: Deploy to Production Server
+        run: |
+          VERSION=${{ needs.verify-release.outputs.version }}
+          ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            cd /opt/helpinminutes
+
+            # Pull latest images
+            docker-compose -f infrastructure/docker/docker-compose.yml pull
+
+            # Load production environment
+            export $(cat infrastructure/docker/production.env | xargs)
+
+            # Create backup of current state
+            docker-compose -f infrastructure/docker/docker-compose.yml exec -T postgres pg_dump -U $POSTGRES_USER $POSTGRES_DB > /backups/pre-deploy-$(date +%Y%m%d-%H%M%S).sql
+
+            # Stop services gracefully
+            docker-compose -f infrastructure/docker/docker-compose.yml down --remove-orphans
+
+            # Start services with new images
+            IMAGE_TAG=v$VERSION docker-compose -f infrastructure/docker/docker-compose.yml up -d
+
+            # Wait for services to be healthy
+            echo "Waiting for services to be healthy..."
+            for service in identity-service task-service matching-service payment-service; do
+              echo "Waiting for $service..."
+              timeout 300 bash -c "until docker ps --filter 'health=healthy' | grep -q 'him-$service'; do sleep 5; done"
+            done
+
+            # Show running containers
+            docker-compose -f infrastructure/docker/docker-compose.yml ps
+
+            # Verify deployment
+            echo "Verifying deployment..."
+            for endpoint in /health /api/auth/health /api/tasks/health /api/payments/health; do
+              if ! curl -sf http://localhost:8080$endpoint > /dev/null 2>&1; then
+                echo "Health check failed for $endpoint"
+                exit 1
+              fi
+              echo "$endpoint OK"
+            done
+          EOF
+
+      - name: Health Check
+        run: |
+          VERSION=${{ needs.verify-release.outputs.version }}
+          for i in {1..60}; do
+            if curl -sf https://api.helpinminutes.com/health > /dev/null 2>&1; then
+              echo "Production is healthy!"
+              exit 0
+            fi
+            echo "Waiting for production... ($i/60)"
+            sleep 10
+          done
+          echo "Production health check failed!"
+          exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Initiating rollback..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            cd /opt/helpinminutes
+            docker-compose -f infrastructure/docker/docker-compose.yml down
+            docker-compose -f infrastructure/docker/docker-compose.yml up -d
+            echo "Rollback completed"
+          EOF
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text": "🔴 Rollback initiated for HelpInMinutes production"}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Deployment Success
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "🚀 HelpInMinutes deployed to production",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🚀 *HelpInMinutes* deployed to *Production*\nVersion: v${{ needs.verify-release.outputs.version }}\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================
+  # Smoke Tests
+  # ============================================
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install test dependencies
+        run: npm install -g newman
+
+      - name: Run Smoke Tests
+        run: |
+          newman run tests/smoke/production-collection.json \
+            --environment tests/smoke/production-env.json \
+            --reporters cli,junit \
+            --reporter-junit-export results/smoke-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: smoke-test-results
+          path: results/
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "❌ Smoke tests failed on production",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "❌ *Smoke Tests Failed* on Production\nVersion: v${{ needs.verify-release.outputs.version }}\nRun: ${{ github.run_id }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,0 +1,197 @@
+{
+  "rabbit_version": "3.11.0",
+  "vhosts": [
+    {
+      "name": "/",
+      "tracing": false
+    }
+  ],
+  "users": [
+    {
+      "name": "helpinminutes",
+      "password_hash": "5Vf+WlOxoO4RZgvGZJ6vKXQ7lF1yNM0P2QP6fGq3YjC8X1E4R9",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "helpinminutes",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "helpinminutes.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false
+    },
+    {
+      "name": "helpinminutes.commands",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false
+    },
+    {
+      "name": "helpinminutes.deadletter",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false
+    }
+  ],
+  "queues": [
+    {
+      "name": "helpinminutes.task.created",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "helpinminutes.deadletter",
+        "x-dead-letter-routing-key": "task.created.dlq"
+      }
+    },
+    {
+      "name": "helpinminutes.task.status.changed",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "helpinminutes.deadletter",
+        "x-dead-letter-routing-key": "task.status.dlq"
+      }
+    },
+    {
+      "name": "helpinminutes.payment.completed",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "helpinminutes.deadletter",
+        "x-dead-letter-routing-key": "payment.completed.dlq"
+      }
+    },
+    {
+      "name": "helpinminutes.payment.webhook",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 3600000,
+        "x-dead-letter-exchange": "helpinminutes.deadletter",
+        "x-dead-letter-routing-key": "payment.webhook.dlq"
+      }
+    },
+    {
+      "name": "helpinminutes.kyc.status.changed",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "helpinminutes.deadletter",
+        "x-dead-letter-routing-key": "kyc.status.dlq"
+      }
+    },
+    {
+      "name": "helpinminutes.location.update",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 3600000,
+        "x-max-length": 100000
+      }
+    },
+    {
+      "name": "helpinminutes.notification",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "helpinminutes.match.request",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 60000
+      }
+    },
+    {
+      "name": "helpinminutes.match.dispatch",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 300000
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "helpinminutes.events",
+      "vhost": "/",
+      "destination": "helpinminutes.task.created",
+      "destination_type": "queue",
+      "routing_key": "task.created"
+    },
+    {
+      "source": "helpinminutes.events",
+      "vhost": "/",
+      "destination": "helpinminutes.task.status.changed",
+      "destination_type": "queue",
+      "routing_key": "task.status.#"
+    },
+    {
+      "source": "helpinminutes.events",
+      "vhost": "/",
+      "destination": "helpinminutes.payment.completed",
+      "destination_type": "queue",
+      "routing_key": "payment.completed"
+    },
+    {
+      "source": "helpinminutes.events",
+      "vhost": "/",
+      "destination": "helpinminutes.kyc.status.changed",
+      "destination_type": "queue",
+      "routing_key": "kyc.status.#"
+    },
+    {
+      "source": "helpinminutes.events",
+      "vhost": "/",
+      "destination": "helpinminutes.notification",
+      "destination_type": "queue",
+      "routing_key": "notification.#"
+    },
+    {
+      "source": "helpinminutes.commands",
+      "vhost": "/",
+      "destination": "helpinminutes.match.request",
+      "destination_type": "queue",
+      "routing_key": "match.request"
+    },
+    {
+      "source": "helpinminutes.commands",
+      "vhost": "/",
+      "destination": "helpinminutes.match.dispatch",
+      "destination_type": "queue",
+      "routing_key": "match.dispatch"
+    }
+  ]
+}
